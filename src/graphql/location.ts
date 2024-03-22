@@ -1,5 +1,5 @@
 import { Location, Storage, Product } from "../model"
-
+import { sequelize } from '../util/db';
 export const typeDef = `
     extend type Query {
         location(locationId: Int!): Location
@@ -79,18 +79,50 @@ export const resolvers = {
         // get all locations
         allLocations: async () => {
             try {
-                const allLocations = await Location.findAll({
-                    include: [{
-                        model: Storage,
-                        include: [Product],
-                    }]
-                })
+                const query = `
+                    WITH LatestStorage AS (
+                        SELECT 
+                            "s"."storageId", 
+                            "s"."locationId", 
+                            "s"."productId",
+                            "s"."palletAmount", 
+                            "s"."createdAt", 
+                            ROW_NUMBER() OVER (PARTITION BY "s"."locationId" ORDER BY "s"."createdAt" DESC) AS row_num
+                        FROM 
+                            "storage" "s"
+                    )
+                    SELECT 
+                        l.*, 
+                        s.*, 
+                        p.*
+                    FROM 
+                        "location" l
+                    JOIN 
+                        LatestStorage ls 
+                    ON 
+                        l."locationId" = ls."locationId" 
+                        AND ls.row_num = 1
+                    LEFT JOIN 
+                        "storage" s 
+                    ON 
+                        l."locationId" = s."locationId" 
+                        AND s."createdAt" = ls."createdAt"
+                    LEFT JOIN 
+                        "product" p 
+                    ON 
+                        s."productId" = p."productId";
+                `;
 
-                return allLocations
+                const allLocations = await sequelize.query(query, {
+                    mapToModel: true,
+                    model: Location,
 
+                });
+
+                return allLocations;
             } catch (error) {
-                console.log(error)
-                throw new Error('Error retrieving all locations ')
+                console.log(error);
+                throw new Error('Error retrieving all locations');
             }
         },
 
