@@ -62,7 +62,8 @@ export const resolvers = {
                     include: [{
                         model: Storage,
                         include: [Product]
-                    }]
+                    },
+                ]
                 })
                 if (!location) {
                     throw new Error(`Location with ID ${locationId} not found`)

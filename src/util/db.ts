@@ -37,18 +37,29 @@ const initializeRoles = async () => {
 }
 
 const initializeAdminUser = async () => {
-    const username: string = process.env.ADMIN_USERNAME!
-    const password: string = process.env.ADMIN_PASSWORD!
+    const adminUsername: string = process.env.ADMIN_USERNAME!
+    const adminPassword: string = process.env.ADMIN_PASSWORD!
 
     // Hash the password
 	const saltRounds: number = 10
-	const passwordHash: string = await bcrypt.hash(password, saltRounds)
+	const adminPasswordHash: string = await bcrypt.hash(adminPassword, saltRounds)
+
+    const userUsername: string = process.env.USER_USERNAME!
+    const userPassword: string = process.env.USER_PASSWORD!
+
+    // Hash the password
+
+	const userPasswordHash: string = await bcrypt.hash(userPassword, saltRounds)
 
 
     try {
         await User.findOrCreate({
-            where: { username },
-            defaults: { username, passwordHash, userRoleId: 1 },
+            where: { username: adminUsername },
+            defaults: { username: adminUsername, passwordHash: adminPasswordHash, userRoleId: 1 },
+        })
+        await User.findOrCreate({
+            where: { username: userUsername },
+            defaults: { username: userUsername, passwordHash: userPasswordHash, userRoleId: 2 },
         })
 
     } catch (error) {
